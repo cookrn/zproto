@@ -13,7 +13,9 @@
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 include "zproto_lib.gsl"
+include "zproto_dot.gsl"
 resolve_includes ()
+generate_dot ()
 set_defaults ()
 
 #   Load message structures for this engine
@@ -44,7 +46,7 @@ for class.state
     state.comma = last()?? ""? ","
     for event where name <> "*"
         event.name = "$(event.name:c)"
-        #   Mark event as external if it a protocol message
+        #   Mark event as external if it's a protocol message
         if count (proto.message, message.name = event.name)
             event.external = 1
         endif
@@ -535,7 +537,7 @@ $(header.:)
 .endfor
 //  Enable verbose tracing (animation) of state machine activity.
 $(CLASS.EXPORT_MACRO)void
-    $(class.name)_set_verbose ($(class.name)_t *self, bool verbose)
+    $(class.name)_set_verbose ($(class.name)_t *self, bool verbose);
 
 //  Self test of this class
 $(CLASS.EXPORT_MACRO)void
@@ -686,7 +688,7 @@ s_client_new (zsock_t *cmdpipe, zsock_t *msgpipe)
         self->state = $(name:c)_state;
 .endfor
         self->event = NULL_event;
-        snprintf (self->log_prefix, sizeof (self->log_prefix) - 1,
+        snprintf (self->log_prefix, sizeof (self->log_prefix),
             "%6d:%-33s", randof (1000000), "$(class.name)");
         self->dealer = zsock_new (ZMQ_DEALER);
         if (self->dealer)
@@ -802,7 +804,7 @@ engine_set_heartbeat (client_t *client, size_t heartbeat)
 
 
 //  Set expiry timer. Setting a non-zero expiry causes the state machine
-//  to receive an "expired" event if is no incoming traffic for that many
+//  to receive an "expired" event if there is no incoming traffic for that many
 //  milliseconds. This cycles over and over until/unless the code sets a
 //  zero expiry. The state machine must handle the "expired" event.
 
@@ -1659,9 +1661,10 @@ $(class.name)_test (bool verbose)
         printf ("\\n");
 
     //  @selftest
-    zactor_t *client = zactor_new ($(class.name), NULL);
-    self->verbose = verbose;
-    zactor_destroy (&client);
+    // TODO: fill this out
+    $(class.name)_t *client = $(class.name)_new ();
+    $(class.name)_set_verbose(client, verbose);
+    $(class.name)_destroy (&client);
     //  @end
     printf ("OK\\n");
 }

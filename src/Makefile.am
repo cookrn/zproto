@@ -7,7 +7,7 @@ TESTS =
 
 # Install scripts into /usr/local/bin
 zprotodir = @bindir@
-zproto_DATA = \
+dist_zproto_DATA = \
 	zproto_codec_c.gsl \
 	zproto_codec_c_v1.gsl \
 	zproto_codec_go.gsl \
@@ -20,6 +20,7 @@ zproto_DATA = \
 	zproto_server_go.gsl \
 	zproto_client_c.gsl \
 	zproto_bnf.gsl \
+	zproto_dot.gsl \
 	zproto_lib.gsl \
 	zproto_lib_go.gsl \
 	zproto_lib_php.gsl \

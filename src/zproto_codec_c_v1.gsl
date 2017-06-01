@@ -18,7 +18,299 @@ expand_headers ()
 generate_bnf ()
 set_defaults ()
 .endtemplate
-.output "$(class.package_dir)/$(class.name).h"
+.if switches.zproject ?= 1 & switches.private ?<> 1
+.   file.delete ("$(class.package_dir)/$(class.name).h")
+.   directory.create ("../api")
+.   output "../api/$(class.name).api"
+<class name="$(class.name)" state="draft" >
+<!--
+    $(class.name) - $(class.title:)
+
+    Codec header for $(class.name).
+
+    ** WARNING *************************************************************
+    THIS SOURCE FILE IS 100% GENERATED. If you edit this file, you will lose
+    your changes at the next build cycle. This is great for temporary printf
+    statements. DO NOT MAKE ANY CHANGES YOU WISH TO KEEP. The correct places
+    for commits are:
+
+     * The XML model used for this code generation: $(filename), or
+     * The code generation script that built this file: $(script)
+    ************************************************************************
+.   for class.license
+    $(string.trim (license.):block                                         )
+.   endfor
+-->
+
+    <constructor>
+        Create a new $(class.name)
+        <argument name = "id" type = "number" size = "4" />
+    </constructor>
+
+    <constructor name = "new_zpl">
+        Create a new $(class.name) from zpl/zconfig_t *
+        <argument name = "config" type = "zconfig" />
+    </constructor>
+
+    <destructor>
+        Destroy the $(class.name)
+    </destructor>
+
+    <method name = "is" singleton = "1">
+        Parse a zmsg_t and decides whether it is $(class.name). Returns
+        true if it is, false otherwise. Doesn't destroy or modify the
+        original message.
+        <argument name = "msg" type = "zmsg" />
+        <return type = "boolean" />
+    </method>
+
+    <method name = "decode" singleton = "1">
+        Parse a $(class.name) from zmsg_t. Returns a new object, or NULL if
+        the message could not be parsed, or was NULL. Destroys msg and
+        nullifies the msg reference.
+        <argument name = "msg_p" type = "zmsg" by_reference = "1" />
+        <return type = "$(class.name)" fresh = "1" />
+    </method>
+
+    <method name = "encode" singleton = "1">
+        Encode $(class.name) into zmsg and destroy it. Returns a newly created
+        object or NULL if error. Use when not in control of sending the message.
+        <argument name = "self_p" type = "$(class.name)" by_reference = "1" />
+        <return type = "zmsg" fresh = "1" />
+    </method>
+
+    <method name = "recv" singleton = "1">
+        Receive and parse a $(class.name) from the socket. Returns new object,
+        or NULL if error. Will block if there's no message waiting.
+        <argument name = "input" type = "anything" />
+        <return type = "$(class.name)" fresh = "1" />
+    </method>
+
+    <method name = "recv_nowait" singleton = "1">
+        Receive and parse a $(class.name) from the socket. Returns new object,
+        or NULL either if there was no input waiting, or the recv was interrupted.
+        <argument name = "input" type = "anything" />
+        <return type = "$(class.name)" fresh = "1" />
+    </method>
+
+    <method name = "send" singleton = "1">
+        Send the $(class.name) to the output, and destroy it
+        <argument name = "self_p" type = "$(class.name)" by_reference = "1" />
+        <argument name = "output" type = "anything" />
+        <return type = "integer" />
+    </method>
+
+    <method name = "send_again" singleton = "1">
+        Send the $(class.name) to the output, and do not destroy it
+        <argument name = "self" type = "$(class.name)" />
+        <argument name = "output" type = "anything" />
+        <return type = "integer" />
+    </method>
+
+.for message
+    <method name = "encode_$(name)" singleton = "1">
+        Encode the $(message.NAME)
+.for field where !defined (value)
+.   if type = "number"
+        <argument name = "$(name)" type = "number" size = "$(size)" />
+.   elsif type = "octets"
+        <argument name = "$(name)" type = "buffer" />
+.   elsif type = "string" | type = "longstr"
+        <argument name = "$(name)" type = "string" />
+.   elsif type = "strings"
+        <argument name = "$(name)" type = "zlist" />
+.   elsif type = "hash" | type = "chunk" | type = "frame" | type = "uuid" | type = "msg"
+        <argument name = "$(name)" type = "z$(type)" />
+.   endif
+.endfor
+        <return type = "zmsg" fresh = "1" />
+    </method>
+
+.endfor
+
+.for message
+    <method name = "send_$(name)" singleton = "1">
+        Send the $(message.NAME) to the output in one step
+        WARNING, this call will fail if output is of type ZMQ_ROUTER.
+
+        <argument name = "output" type = "anything" />
+.for field where !defined (value)
+.   if type = "number"
+        <argument name = "$(name)" type = "number" size = "$(size)" />
+.   elsif type = "octets"
+        <argument name = "$(name)" type = "buffer" />
+.   elsif type = "string" | type = "longstr"
+        <argument name = "$(name)" type = "string" />
+.   elsif type = "strings"
+        <argument name = "$(name)" type = "zlist" />
+.   elsif type = "hash" | type = "chunk" | type = "frame" | type = "uuid" | type = "msg"
+        <argument name = "$(name)" type = "z$(type)" />
+.   endif
+.endfor
+        <return type = "integer" />
+    </method>
+
+.endfor
+    <method name = "dup">
+        Duplicate the $(class.name) message
+        <return type = "$(class.name)" fresh = "1" />
+    </method>
+
+    <method name = "print">
+        Print contents of message to stdout
+    </method>
+
+    <method name = "zpl">
+        Export class as zconfig_t*. Caller is responsibe for destroying the instance
+        <argument name = "parent" type = "zconfig" />
+        <return type = "zconfig" fresh = "1" />
+    </method>
+
+    <method name = "routing_id">
+        Get the message routing id
+        <return type = "zframe" fresh = "1" />
+    </method>
+
+    <method name = "set_routing_id">
+        Set the message routing id
+        <argument name = "routing_id" type = "zframe" />
+    </method>
+
+    <method name = "id">
+        Get the $(class.name) id
+        <return type = "integer" />
+    </method>
+
+    <method name = "set_id">
+        Set the $(class.name) id
+        <argument name = "id" type = "integer" />
+    </method>
+
+    <method name = "command">
+        Return the printable command
+        <return type = "string" />
+    </method>
+
+
+.for class.field where !defined (value)
+.   if type = "number"
+    <method name = "$(name)">
+        Get/set the $(name) field
+        <return type = "number" size = "$(size)" />
+    </method>
+    <method name = "set_$(name)">
+        Get/set the $(name) field
+        <argument name = "$(name)" type = "number" size = "$(size)" />
+    </method>
+.   elsif type = "octets"
+    <method name = "$(name)">
+        Get/set the $(name) field
+        <return type = "buffer" />
+    </method>
+    <method name = "set_$(name)">
+        Get/set the $(name) field
+        <argument name = "$(name)" type = "buffer"/>
+    </method>
+.   elsif type = "string" | type = "longstr"
+    <method name = "$(name)">
+        Get/set the $(name) field
+        <return type = "string" />
+    </method>
+    <method name = "set_$(name)">
+        Get/set the $(name) field
+        <argument name = "format" type = "format"/>
+    </method>
+.   elsif type = "strings"
+    <method name = "$(name)">
+        Get/set the $(name) field
+        <return type = "zlist" />
+    </method>
+    <method name = "get_$(name)">
+        Get/set the $(name) field and transfer ownership to caller
+        <return type = "zlist" fresh = "1"/>
+    </method>
+    <method name = "set_$(name)">
+        Get/set the $(name) field, transferring ownership from caller
+        <argument name = "$(name)_p" type = "zlist" by_reference = "1"/>
+    </method>
+    <method name = "$(name)_first" >
+        Iterate through the $(name) field, and append a $(name) value
+        <return type = "string" />
+    </method>
+    <method name = "$(name)_next" >
+        Iterate through the $(name) field, and append a $(name) value
+        <return type = "string" />
+    </method>
+    <method name = "$(name)_append" >
+        Iterate through the $(name) field, and append a $(name) value
+        <argument name = "format" type = "format" />
+    </method>
+    <method name = "$(name)_size" >
+        Iterate through the $(name) field, and append a $(name) value
+        <return type = "size" />
+    </method>
+.   elsif type = "hash"
+    <method name = "$(name)">
+        Get/set the $(name) field
+        <return type = "zhash" />
+    </method>
+    <method name = "get_$(name)">
+        Get/set the $(name) field and transfer ownership to caller
+        <return type = "zhash" fresh = "1"/>
+    </method>
+    <method name = "set_$(name)">
+        Get/set the $(name) field, transferring ownership from caller
+        <argument name = "$(name)_p" type = "zhash" by_reference = "1"/>
+    </method>
+
+    <method name = "$(name)_string">
+        Get/set a value in the $(name) dictionary
+        <argument name = "key" type = "string" />
+        <argument name = "default_value" type = "string" />
+        <return type = "string" />
+    </method>
+
+    <method name = "$(name)_number">
+        Get/set a value in the $(name) dictionary
+        <argument name = "key" type = "string" />
+        <argument name = "default_value" type = "number" size = "8" />
+        <return type = "number" size = "8" />
+    </method>
+
+    <method name = "$(name)_insert" >
+        Get/set a value in the $(name) dictionary
+        <argument name = "key" type = "string" />
+        <argument name = "format" type = "format" />
+    </method>
+    <method name = "$(name)_size" >
+        Get/set a value in the $(name) dictionary
+        <return type = "size" />
+    </method>
+.   elsif type = "chunk" | type = "frame" | type = "uuid" | type = "msg"
+    <method name = "$(name)">
+        Get a copy of the $(name) field
+        <return type = "z$(type)" fresh = "1" />
+    </method>
+    <method name = "get_$(name)">
+        Get a copy of the $(name) field and transfer ownership to caller
+        <return type = "z$(type)" fresh = "1" />
+    </method>
+    <method name = "set_$(name)">
+        Set the $(name) field, transferring ownership from caller
+        <argument name = "$(type)_p" type = "z$(type)" />
+    </method>
+.   else
+.       echo "E: unknown type '$(type)' for field '$(name)'"
+.   endif
+
+.endfor
+    <method name = "test" singleton = "1">
+        Self test of this class
+        <argument name = "verbose" type = "boolean" />
+    </method>
+</class>
+.else
+.   output "$(class.package_dir)/$(class.name).h"
 /*  =========================================================================
     $(class.name) - $(class.title:)
 
@@ -61,7 +353,7 @@ set_defaults ()
 */
 
 .for define
-#define $(CLASS.NAME)_$(DEFINE.NAME:C)      $(value)
+#define $(CLASS.NAME)_$(DEFINE.NAME:C)      $(value:)
 .endfor
 
 .for message
@@ -96,6 +388,10 @@ typedef struct _$(class.name)_t $(class.name)_t;
 $(CLASS.EXPORT_MACRO)$(class.name)_t *
     $(class.name)_new (int id);
 
+//  Create a new $(class.name) from zpl/zconfig_t *
+$(CLASS.EXPORT_MACRO)$(class.name)_t *
+    $(class.name)_new_zpl (zconfig_t *config);
+
 //  Destroy the $(class.name)
 $(CLASS.EXPORT_MACRO)void
     $(class.name)_destroy ($(class.name)_t **self_p);
@@ -104,7 +400,7 @@ $(CLASS.EXPORT_MACRO)void
 //  true if it is, false otherwise. Doesn't destroy or modify the
 //  original message.
 $(CLASS.EXPORT_MACRO)bool
-    is_$(class.name) (zmsg_t *msg_p);
+    $(class.name)_is (zmsg_t *msg_p);
 
 //  Parse a $(class.name) from zmsg_t. Returns a new object, or NULL if
 //  the message could not be parsed, or was NULL. Destroys msg and
@@ -188,6 +484,10 @@ $(CLASS.EXPORT_MACRO)$(class.name)_t *
 //  Print contents of message to stdout
 $(CLASS.EXPORT_MACRO)void
     $(class.name)_print ($(class.name)_t *self);
+
+//  Export class as zconfig_t*. Caller is responsibe for destroying the instance
+$(CLASS.EXPORT_MACRO)zconfig_t *
+    $(class.name)_zpl ($(class.name)_t *self, zconfig_t* parent);
 
 //  Get/set the message routing id
 $(CLASS.EXPORT_MACRO)zframe_t *
@@ -293,12 +593,14 @@ $(CLASS.EXPORT_MACRO)void
 
 //  For backwards compatibility with old codecs
 #define $(class.name)_dump  $(class.name)_print
+#define is_$(class.name) $(class.name)_is
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+.endif
 .output "$(class.source_dir)/$(class.name).c"
 /*  =========================================================================
     $(class.name) - $(class.title:)
@@ -492,6 +794,49 @@ struct _$(class.name)_t {
     self->needle += string_size; \\
 }
 
+//  --------------------------------------------------------------------------
+//  bytes cstring conversion macros
+
+// create new array of unsigned char from properly encoded string
+// len of resulting array is strlen (str) / 2
+// caller is responsibe for freeing up the memory
+#define BYTES_FROM_STR(dst, _str) { \\
+    char *str = (char*) (_str); \\
+    if (!str || (strlen (str) % 2) != 0) \\
+        return NULL; \\
+\\
+    size_t strlen_2 = strlen (str) / 2; \\
+    byte *mem = (byte*) zmalloc (strlen_2); \\
+\\
+    for (size_t i = 0; i != strlen_2; i++) \\
+    { \\
+        char buff[3] = {0x0, 0x0, 0x0}; \\
+        strncpy (buff, str, 2); \\
+        unsigned int uint; \\
+        sscanf (buff, "%x", &uint); \\
+        assert (uint <= 0xff); \\
+        mem [i] = (byte) (0xff & uint); \\
+        str += 2; \\
+    } \\
+    dst = mem; \\
+}
+
+// convert len bytes to hex string
+// caller is responsibe for freeing up the memory
+#define STR_FROM_BYTES(dst, _mem, _len) { \\
+    byte *mem = (byte*) (_mem); \\
+    size_t len = (size_t) (_len); \\
+    char* ret = (char*) zmalloc (2*len + 1); \\
+    char* aux = ret; \\
+    for (size_t i = 0; i != len; i++) \\
+    { \\
+        sprintf (aux, "%02x", mem [i]); \\
+        aux+=2; \\
+    } \\
+    dst = ret; \\
+}
+
+
 
 //  --------------------------------------------------------------------------
 //  Create a new $(class.name)
@@ -504,6 +849,189 @@ $(class.name)_new (int id)
     return self;
 }
 
+//  --------------------------------------------------------------------------
+//  Create a new $(class.name) from zpl/zconfig_t *
+
+$(class.name)_t *
+    $(class.name)_new_zpl (zconfig_t *config)
+{
+    assert (config);
+    $(class.name)_t *self = NULL;
+    char *message = zconfig_get (config, "message", NULL);
+    if (!message) {
+        zsys_error ("Can't find 'message' section");
+        return NULL;
+    }
+
+.for class.message
+    if (streq ("$(CLASS.NAME)_$(MESSAGE.NAME)", message))
+        self = $(class.name)_new ($(CLASS.NAME)_$(MESSAGE.NAME));
+    else
+.endfor
+       {
+        zsys_error ("message=%s is not known", message);
+        return NULL;
+       }
+
+    char *s = zconfig_get (config, "routing_id", NULL);
+    if (s) {
+        byte *bvalue;
+        BYTES_FROM_STR (bvalue, s);
+        if (!bvalue) {
+            $(class.name)_destroy (&self);
+            return NULL;
+        }
+        zframe_t *frame = zframe_new (bvalue, strlen (s) / 2);
+        free (bvalue);
+        self->routing_id = frame;
+    }
+
+    zconfig_t *content = zconfig_locate (config, "content");
+    if (!content) {
+        zsys_error ("Can't find 'content' section");
+        return NULL;
+    }
+    switch (self->id) {
+.for class.message
+        case $(CLASS.NAME)_$(MESSAGE.NAME):
+.   for field where !defined (value)
+.       if type = "number"
+            {
+            char *es = NULL;
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (!s) {
+                zsys_error ("content/$(name) not found");
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            uint64_t uvalue = (uint64_t) strtoll (s, &es, 10);
+            if (es != s+strlen (s)) {
+                zsys_error ("content/$(name): %s is not a number", s);
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            self->$(name) = uvalue;
+            }
+.       elsif type = "octets"
+            {
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (!s) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            byte *bvalue;
+            BYTES_FROM_STR (bvalue, s);
+            if (!bvalue) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            self->$(name) = bvalue;
+            }
+.       elsif type = "string" | type = "longstr"
+            {
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (!s) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            self->$(name) = strdup (s);
+            }
+.       elsif type = "strings"
+            {
+            zconfig_t *zstrings = zconfig_locate (content, "$(name)");
+            if (zstrings) {
+                zlist_t *strings = zlist_new ();
+                zlist_autofree (strings);
+                for (zconfig_t *child = zconfig_child (zstrings);
+                                child != NULL;
+                                child = zconfig_next (child))
+                {
+                    zlist_append (strings, zconfig_value (child));
+                }
+                self->$(name) = strings;
+            }
+            }
+.       elsif type = "hash"
+            {
+            zconfig_t *zhash = zconfig_locate (content, "$(name)");
+            if (zhash) {
+                zhash_t *hash = zhash_new ();
+                zhash_autofree (hash);
+                for (zconfig_t *child = zconfig_child (zhash);
+                                child != NULL;
+                                child = zconfig_next (child))
+                {
+                    zhash_update (hash, zconfig_name (child), zconfig_value (child));
+                }
+                self->$(name) = hash;
+            }
+            }
+.       elsif type = "chunk"
+            {
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (!s) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            byte *bvalue;
+            BYTES_FROM_STR (bvalue, s);
+            if (!bvalue) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            zchunk_t *chunk = zchunk_new (bvalue, strlen (s) / 2);
+            free (bvalue);
+            self->$(name) = chunk;
+.       elsif type = "uuid"
+            {
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (s) {
+                zuuid_t *uuid = zuuid_new ();
+                zuuid_set_str (uuid, s);
+                self->$(name) = uuid;
+            }
+            }
+.       elsif type = "frame"
+            {
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (!s) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            byte *bvalue;
+            BYTES_FROM_STR (bvalue, s);
+            if (!bvalue) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            zframe_t *frame = zframe_new (bvalue, strlen (s) / 2);
+            free (bvalue);
+            self->$(name) = frame;
+            }
+.       elsif type = "msg"
+            {
+            char *s = zconfig_get (content, "$(name)", NULL);
+            if (!s) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            byte *bvalue;
+            BYTES_FROM_STR (bvalue, s);
+            if (!bvalue) {
+                $(class.name)_destroy (&self);
+                return NULL;
+            }
+            zmsg_t *msg = zmsg_decode (bvalue, strlen (s) / 2);
+            free (bvalue);
+            self->$(name) = msg;
+            }
+.       endif
+.   endfor
+            break;
+.endfor
+    }
+    return self;
+}
 
 //  --------------------------------------------------------------------------
 //  Destroy the $(class.name)
@@ -538,7 +1066,7 @@ $(class.name)_destroy ($(class.name)_t **self_p)
 //  true if it is, false otherwise. Doesn't destroy or modify the
 //  original message.
 bool
-is_$(class.name) (zmsg_t *msg)
+$(class.name)_is (zmsg_t *msg)
 {
     if (msg == NULL)
         return false;
@@ -1094,8 +1622,10 @@ $(class.name)_send_$(name) (
 {
     $(class.name)_t *self = $(class.name)_new ($(class.NAME)_$(NAME));
 .for field where !defined (value)
-.   if type = "number" | type = "octets" | type = "string" | type = "longstr"
+.   if type = "number" | type = "octets" | type = "longstr"
     $(class.name)_set_$(name) (self, $(name));
+.   elsif type = "string"
+    $(class.name)_set_$(name) (self, "%s", $(name));
 .   elsif type = "strings"
     zlist_t *$(name)_copy = zlist_dup ($(name));
     $(class.name)_set_$(name) (self, &$(name)_copy);
@@ -1223,6 +1753,109 @@ $(class.name)_print ($(class.name)_t *self)
 
 .endfor
     }
+}
+
+//  --------------------------------------------------------------------------
+//  Export class as zconfig_t*. Caller is responsibe for destroying the instance
+
+zconfig_t *
+$(class.name)_zpl ($(class.name)_t *self, zconfig_t *parent)
+{
+    assert (self);
+
+    zconfig_t *root = zconfig_new ("$(class.name)", parent);
+
+    switch (self->id) {
+.for class.message
+        case $(CLASS.NAME)_$(MESSAGE.NAME):
+        {
+            zconfig_put (root, "message", "$(CLASS.NAME)_$(MESSAGE.NAME)");
+
+            if (self->routing_id) {
+                char *hex = NULL;
+                STR_FROM_BYTES (hex, zframe_data (self->routing_id), zframe_size (self->routing_id));
+                zconfig_putf (root, "routing_id", "%s", hex);
+                zstr_free (&hex);
+            }
+
+            zconfig_t *config = zconfig_new ("content", root);
+.   for field
+.       if type = "number"
+.           if defined (field.value)
+            zconfig_putf (config, "$(name)", "%s", "$(field.value)");
+.           else
+            zconfig_putf (config, "$(name)", "%ld", (long) self->$(name));
+.           endif
+.       elsif type = "octets"
+            {
+            char *hex = NULL;
+            STR_FROM_BYTES (hex, self->$(name), $(size));
+            zconfig_putf (config, "$(name)", "%s", hex);
+            zstr_free (&hex);
+            }
+.       elsif type = "string" | type = "longstr"
+.           if defined (field.value)
+            zconfig_putf (config, "$(name)", "%s", "$(field.value)");
+.           else
+            if (self->$(name))
+                zconfig_putf (config, "$(name)", "%s", self->$(name));
+.           endif
+.       elsif type = "strings"
+            if (self->$(name)) {
+                zconfig_t *strings = zconfig_new ("$(name)", config);
+                size_t i = 0;
+                char *$(name) = (char *) zlist_first (self->$(name));
+                while ($(name)) {
+                    char *key = zsys_sprintf ("%zu", i);
+                    zconfig_putf (config, key, "%s", $(name));
+                    zstr_free (&key);
+                    i++;
+                    $(name) = (char *) zlist_next (self->$(name));
+                }
+            }
+.       elsif type = "hash"
+            if (self->$(name)) {
+                zconfig_t *hash = zconfig_new ("$(name)", config);
+                char *item = (char *) zhash_first (self->$(name));
+                while (item) {
+                    zconfig_putf (hash, zhash_cursor (self->$(name)), "%s", item);
+                    item = (char *) zhash_next (self->$(name));
+                }
+            }
+.       elsif type = "chunk"
+            {
+            char *hex = NULL;
+            STR_FROM_BYTES (hex, zchunk_data (self->$(name)), zchunk_size (self->$(name)));
+            zconfig_putf (config, "$(name)", "%s", hex);
+            zstr_free (&hex);
+            }
+.       elsif type = "uuid"
+            if (self->$(name))
+                zconfig_putf (config, "$(name)", "%s", zuuid_str (self->$(name)));
+.       elsif type = "frame"
+            {
+            char *hex = NULL;
+            STR_FROM_BYTES (hex, zframe_data (self->$(name)), zframe_size (self->$(name)));
+            zconfig_putf (config, "$(name)", "%s", hex);
+            zstr_free (&hex);
+            }
+.       elsif type = "msg"
+            {
+            char *hex = NULL;
+            byte *buffer;
+            size_t size = zmsg_encode (self->$(name), &buffer);
+            STR_FROM_BYTES (hex, buffer, size);
+            zconfig_putf (config, "$(name)", "%s", hex);
+            zstr_free (&hex);
+            free (buffer); buffer= NULL;
+            }
+.       endif
+.   endfor
+            break;
+            }
+.endfor
+    }
+    return root;
 }
 
 
@@ -1574,6 +2207,7 @@ $(class.name)_test (bool verbose)
     //  Encode/send/decode and verify each message type
     int instance;
     $(class.name)_t *copy;
+    zconfig_t *config;
 .for class.message
     self = $(class.name)_new ($(CLASS.NAME)_$(MESSAGE.NAME));
 
@@ -1610,14 +2244,24 @@ $(class.name)_test (bool verbose)
     zmsg_addstr ($(class.name)_$(name) (self), "Hello, World");
 .       endif
 .   endfor
+    // convert to zpl
+    config = $(class.name)_zpl (self, NULL);
+    if (verbose)
+        zconfig_print (config);
     //  Send twice from same object
     $(class.name)_send_again (self, output);
     $(class.name)_send (&self, output);
 
-    for (instance = 0; instance < 2; instance++) {
-        self = $(class.name)_recv (input);
+    for (instance = 0; instance < 3; instance++) {
+        if (instance < 2)
+            self = $(class.name)_recv (input);
+        else {
+            self = $(class.name)_new_zpl (config);
+            zconfig_destroy (&config);
+        }
         assert (self);
-        assert ($(class.name)_routing_id (self));
+        if (instance < 2)
+            assert ($(class.name)_routing_id (self));
 
 .   for field where !defined (value)
 .       if type = "number"
@@ -1653,6 +2297,7 @@ $(class.name)_test (bool verbose)
     }
 .endfor
 
+    zconfig_destroy (&config);
     zsock_destroy (&input);
     zsock_destroy (&output);
     //  @end
